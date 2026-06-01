@@ -1,0 +1,6 @@
+interface:
+  display_name: "Robot Motion Editor"
+  short_description: "Tune robot motion contacts and smoothness"
+  default_prompt: "Use $robot-motion-editor to tune a Robot Motion Editor motion file for contact, physical plausibility, smoothness, and verified export."
+policy:
+  allow_implicit_invocation: true
