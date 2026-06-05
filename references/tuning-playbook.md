@@ -52,6 +52,25 @@ Common pattern:
 
 Do not solve repeated penetration by permanently lifting the robot far above the floor. That creates training data with missing contacts.
 
+## Mesh-Based Re-Flooring
+
+When the robot visually floats, do not guess a Base Z offset from the curve alone. Measure the actual lowest visual geometry with `getOwnWorldBox`/`getWorldBox`, then move Base Z so the lowest mesh is near the floor target.
+
+Reliable pattern:
+
+1. Measure `min` and `minLink` for every suspicious frame.
+2. Set `Base Z += targetFloor - min`, usually with `targetFloor = 0.004`.
+3. Re-run the same metrics after the edit.
+4. Inspect key frames from a low camera angle.
+
+Lessons from Pi Plus face-up get-up tuning:
+
+- A monotonic Base Z curve can look smooth while the robot floats several centimeters above the floor. Contact wins over curve monotonicity.
+- A non-monotonic Base Z section can be acceptable when the lowest support transfers from wrist to ankle or from one side to the other.
+- After root pitch/yaw/roll edits, always re-floor before judging whether a wrist or ankle actually reached the ground.
+- If a re-floor pass creates a visible Z pop, smooth only the local root channels or candidate envelope, then re-floor again.
+- Keep the re-floor range slightly wider than the visible problem range so endpoints blend, for example edit `34-48` and re-floor `32-50`.
+
 ## Single-Limb Support Looks Wrong
 
 If a frame shows one arm or one wrist apparently lifting the full body:
@@ -62,6 +81,19 @@ If a frame shows one arm or one wrist apparently lifting the full body:
 - Inspect the body lean relative to support contacts. A small root rotation can make the support pattern much more plausible.
 
 For get-up motions, the plausible progression is often: torso/side contact -> one hand assists -> second hand or foot joins -> feet take over.
+
+For face-up get-up motions with backward arm support, avoid a long window where only one wrist is the lowest link. A better support pattern is often: both wrists near or touching behind the body -> one foot or ankle joins -> wrists release as feet take over.
+
+Useful counters for judging this case:
+
+- `leftContact/rightContact`: wrist relative height `<= 0.018 m`.
+- `bothAssist`: both wrists relative height `<= 0.040 m`.
+- `handFoot`: at least one wrist near contact and at least one ankle/foot near contact.
+- `lowest`: distribution of lowest links across the range.
+- `avgLwRel/avgRwRel` and `maxLwRel/maxRwRel`: whether one hand is consistently floating.
+- `zJump/rootJump`: whether the cure introduced a new motion spike.
+
+Do not simply maximize one side's contact count. If a candidate changes the lowest link from all right wrist to all left wrist, it may still be a single-arm artifact. Prefer a balanced support distribution unless the source motion clearly intends otherwise.
 
 ## Prone Get-Up Hand/Foot Support
 
@@ -104,6 +136,8 @@ For Pi Plus facedown recovery, root coordination is often more powerful than loc
 
 After a root change, always re-floor before judging whether the wrist or ankle actually gained contact.
 
+For Pi Plus face-up recovery, local arm IK alone may not bring the assist wrist to the floor. Small Base Pitch/Yaw changes can rotate the trunk so both hands become plausible rear supports. Then use shoulder roll or upper-arm/elbow only as small assists. In one useful pattern, Base Pitch provided most of the left-wrist drop, Base Yaw traded load between wrists, and a small left shoulder-roll change made the visual pose less one-sided.
+
 ## Candidate Testing Before Committing
 
 Use temporary browser-side backups to compare candidate edits before keeping one:
@@ -115,6 +149,14 @@ Use temporary browser-side backups to compare candidate edits before keeping one
 5. Restore the backup before trying the next candidate.
 
 Reject candidates that improve one metric while breaking another physical invariant. For example, a right-wrist assist that slightly lowers `rwRel` but introduces head-ground contact is usually worse than leaving the right wrist near the floor.
+
+Candidate sweeps in the browser can become slow because every metric call updates meshes. Test in stages:
+
+1. Single-channel sensitivity on representative frames or a short range.
+2. A small set of combined candidates using the best directions.
+3. Visual review of the top candidate before export.
+
+If a long browser-side candidate test is interrupted, do not keep editing the uncertain current state. Restore the browser backup or reload the NPZ from disk, then apply only the accepted candidate.
 
 ## Foot or Leg Oscillation
 

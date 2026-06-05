@@ -13,6 +13,7 @@ Use this skill to edit robot motion in the browser editor as a visual, iterative
 
 - Read `references/tuning-playbook.md` before changing motion values. It contains the contact, root coordination, smoothing, and visual review heuristics.
 - Read `references/browser-automation.md` when using WebDriver or `window.motionEditorAutomation` to inspect, edit, screenshot, or export.
+- Use `scripts/browser_motion_tools.js` for repeated browser-side contact summaries, mesh-based re-flooring, or export when a WebDriver session is available.
 - Run `scripts/verify_npz.py` after exporting an NPZ.
 
 ## Workflow
@@ -42,6 +43,7 @@ Use this skill to edit robot motion in the browser editor as a visual, iterative
 5. **Re-floor after rotations**
    - Any root/base rotation can change geometry height. Recompute minimum Z and adjust Base Z after the rotation edit.
    - Keep intentional contacts lightly touching the ground, not buried below it.
+   - Do not make Base Z monotonic just to remove a visual dip. If the robot floats, re-floor by actual mesh/link minimums frame by frame and then judge whether the remaining Base Z shape is physically acceptable.
 
 6. **Smooth without erasing contacts**
    - Smooth only the local channels and frame ranges that cause visible jitter.
@@ -60,6 +62,7 @@ Use this skill to edit robot motion in the browser editor as a visual, iterative
 - Floor minimum is at the chosen clearance, typically about `0.004 m`, across the edited range.
 - Intentional wrist/ankle contacts are documented by frame range.
 - No single limb carries the body in an obviously impossible pose unless the source motion requires it.
+- Candidate edits were judged by support distribution, not only by one wrist or ankle being lowest.
 - For prone get-up motions, hand/foot support is distributed: primary hand, assisting hand or near-ground wrist, and foot/ankle contacts are all considered.
 - Root roll/pitch/yaw and Base Z have no unexplained spikes.
 - Exported file was verified with `scripts/verify_npz.py`.

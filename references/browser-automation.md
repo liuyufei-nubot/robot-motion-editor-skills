@@ -189,6 +189,18 @@ for (let f = start; f <= end; f++) {
 
 Re-run metrics after this. A rotation edit can change which link is lowest.
 
+For repeated inspection or re-flooring, prefer the bundled helper instead of rewriting a long WebDriver script:
+
+```bash
+node skills/robot-motion-editor/scripts/browser_motion_tools.js metrics \
+  --session <webdriver-session-id> --start 36 --end 46
+
+node skills/robot-motion-editor/scripts/browser_motion_tools.js refloor \
+  --session <webdriver-session-id> --start 20 --end 56 --target 0.004
+```
+
+Use the helper output to compare support distribution (`leftContact`, `rightContact`, `bothAssist`, `handFoot`, `lowest`) before accepting a candidate.
+
 ## Export Current Browser Motion
 
 ```js
